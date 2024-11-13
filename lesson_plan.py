@@ -1,17 +1,15 @@
 import streamlit as st
-import wikipi
+import json
 import os
 import time
 from whapi import get_id
 from whapi import random_article
 from whapi import return_details
-from dotenv import load_dotenv
 from openai import OpenAI
 from whapi import search
 from whapi import return_details
 
-
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY')) 
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) 
 
 st.title("Plan your lesson 101")
 
@@ -22,6 +20,8 @@ def generate_goal():
 
     URL = search_results[0:2][0]['url']
 
+    lesson_plan = ""
+
     response_hobby= client.chat.completions.create(
         model="gpt-4o-mini",
 
@@ -31,7 +31,7 @@ def generate_goal():
             You are given the task to design a lesson plan for the user based on""" 
             + goal +
             """
-            The output should be in json without any additionally formatting and describe the tasks.
+            Describe the tasks in the lesson plan. Use this format for the JSON output. Only output raw JSON without any additional formatting or text.
                 {
                     "Prerequisite": str
                     "Month Number":int
@@ -57,7 +57,8 @@ def generate_goal():
         ]
     
     )
-    st.write(response_hobby.choices[0].message.content)
+    lesson_plan = json.loads(response_hobby.choices[0].message.content)
+    st.write(str(lesson_plan['Prerequisite']))
     st.write("More details can be found in: " + URL)
 
 if st.button("Generate Plan"):
