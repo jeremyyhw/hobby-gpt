@@ -1,6 +1,7 @@
 import streamlit as st
 import wikipi
 import os
+import time
 from whapi import get_id
 from whapi import random_article
 from whapi import return_details
@@ -26,7 +27,7 @@ def generate_goal():
 
         messages=[
             
-            {"role": "system", "content": """ 
+            {"role": "system", "content": f""" 
             You are given the task to design a lesson plan for the user based on""" 
             + goal +
             """
@@ -48,6 +49,7 @@ def generate_goal():
                         "Task number": str
                         "Task number": str
                         }
+                    
                 }
             The month number, week number and tasks can be more than two.
             """},
@@ -55,11 +57,14 @@ def generate_goal():
         ]
     
     )
-    return st.write(response_hobby.choices[0].message.content)
+    st.write(response_hobby.choices[0].message.content)
+    st.write("More details can be found in: " + URL)
 
 if st.button("Generate Plan"):
     if goal == "":
         st.write("What? You have no goals in life?")
+        time.sleep(4)
+        st.rerun()
     else:
         generate_goal()
 
