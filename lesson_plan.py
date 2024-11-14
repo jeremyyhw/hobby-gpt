@@ -19,6 +19,7 @@ def get_wikihow():
     global article_id
     global url
     global article
+    st.write("Searching for WikiHow article...")
     while True:
         search_result = search(goal, 1)
         article_id = search_result[0]["article_id"]
@@ -44,8 +45,6 @@ def get_wikihow():
             for method in article.methods
         ]
     }
-    st.write("Article found: " + article.title)
-    st.write(article.url)
     return json.dumps(article_dict, indent=4)
 
 def generate_plan():
@@ -60,7 +59,7 @@ def generate_plan():
             The lesson plan should be based on this article.
             The lesson plan must be structured around milestones to help people learn new hobbies.
             Do not include any information that is not in the article.
-            Do not include instructions to purchase any materials or tools. 
+            Do not include instructions to buy any additional materials, items, equipment or tools, even if they are mentioned in the article.
             You can make suggestions for commonly available items, but the lesson plan should not depend on them.
             Use decimal format for any non-integer quantities. 
             Only output raw JSON without any additional formatting or text.
@@ -86,23 +85,30 @@ def generate_plan():
             {"role": "user", "content": article_json}
         ]
     )
-    st.write(plan_response.choices[0].message.content)
+    #st.write(plan_response.choices[0].message.content)
     return json.loads(plan_response.choices[0].message.content)
 
 def print_plan():
     lesson_plan = generate_plan()
 
-    st.header("Lesson Plan")
-    st.subheader("Prerequisites")
+    st.markdown(f"# {lesson_plan['hobby']}")
+    st.divider()
+    st.markdown("## Prerequisites")
     st.write(lesson_plan['prerequisites'])
-    st.subheader("Milestones")
+    st.divider()
+    st.markdown("## Milestones")
     for milestone in lesson_plan['milestones']:
-        st.subheader(milestone['title'])
+        st.markdown(f"### {milestone['title']}")
         st.write(milestone['description'])
-        st.subheader("Objectives")
+        st.markdown("#### Objectives")
+        #with st.expander("Objectives"):
         for objective in milestone['objectives']:
-            st.write(objective['title'])
+            #st.write(f"##### {objective['title']}")
+            #TODO: Page reloads when checkbox is clicked
+            st.checkbox(objective['title'])
             st.write(objective['description'])
+            st.divider()
+        #st.divider()
     st.caption("More details can be found in: " + url)
 
 if st.button("Generate Plan"):
