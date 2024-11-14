@@ -2,64 +2,108 @@ import streamlit as st
 import json
 import os
 import time
-from whapi import get_id
-from whapi import random_article
-from whapi import return_details
+from whapi import search, return_details
+import wikihowunofficialapi as wha
 from openai import OpenAI
-from whapi import search
-from whapi import return_details
+
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) 
 
 st.title("Plan your lesson 101")
 
 goal = st.text_input("Type your goal that you want to achieve")
-def generate_goal():
 
-    search_results = search(goal, 1)
+url = ""
 
-    URL = search_results[0:2][0]['url']
-
-    lesson_plan = ""
-
-    response_hobby= client.chat.completions.create(
-        model="gpt-4o-mini",
-
-        messages=[
-            
-            {"role": "system", "content": f""" 
-            You are given the task to design a lesson plan for the user based on""" 
-            + goal +
-            """
-            Describe the tasks in the lesson plan. Use this format for the JSON output. Only output raw JSON without any additional formatting or text.
-                {
-                    "Prerequisite": str
-                    "Month Number":int
-                    "Week number":{
-                        "Task number": str
-                        "Task number": str
-                        }
-                    "Month Number":int
-                    "Week number":{
-                        "Task number": str
-                        "Task number": str
-                        }
-                    "Month Number":int
-                    "Week number":{
-                        "Task number": str
-                        "Task number": str
-                        }
-                    
-                }
-            The month number, week number and tasks can be more than two.
-            """},
-            {"role": "user", "content": "Please summarize and give a training plan based on " + URL},
+def get_wikihow():
+    global article_id
+    global url
+    global article
+    while True:
+        search_result = search(goal, 1)
+        article_id = search_result[0]["article_id"]
+        article_info = return_details(article_id)
+        if not article_info.get("low_quality", False) and not article_info.get("is_stub", False):
+            url = article_info["url"]
+            article = wha.Article(url)
+            break
+    article_dict = {
+        "title": article.title,
+        "intro": article.intro,
+        "methods": [
+            {
+                "method": method.title,
+                "steps": [
+                    {
+                        "step": step.title,
+                        "description": step.description,
+                    }
+                    for step in method.steps
+                ]
+            }
+            for method in article.methods
         ]
-    
+    }
+    st.write("Article found: " + article.title)
+    st.write(article.url)
+    return json.dumps(article_dict, indent=4)
+
+def generate_plan():
+    article_json = get_wikihow()
+    st.write("Generating plan...")
+    plan_response= client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": """ 
+            You are a teacher who wants to create a lesson plan for a hobby.
+            You are given a related WikiHow article on the hobby as a JSON string.
+            The lesson plan should be based on this article.
+            The lesson plan must be structured around milestones to help people learn new hobbies.
+            Do not include any information that is not in the article.
+            Do not include instructions to purchase any materials or tools. 
+            You can make suggestions for commonly available items, but the lesson plan should not depend on them.
+            Use decimal format for any non-integer quantities. 
+            Only output raw JSON without any additional formatting or text.
+            The JSON output should follow the schema below:
+            {
+                "hobby": "",
+                "description": "",
+                "prerequisites": "",
+                "milestones": [
+                    {
+                    "title": "",
+                    "description": "",
+                    "objectives": [
+                        {
+                        "title": "",
+                        "description": "",
+                        },
+                    ]
+                    },
+                ]
+                }
+            """},
+            {"role": "user", "content": article_json}
+        ]
     )
-    lesson_plan = json.loads(response_hobby.choices[0].message.content)
-    st.write(str(lesson_plan['Prerequisite']))
-    st.write("More details can be found in: " + URL)
+    st.write(plan_response.choices[0].message.content)
+    return json.loads(plan_response.choices[0].message.content)
+
+def print_plan():
+    lesson_plan = generate_plan()
+
+    st.header("Lesson Plan")
+    st.subheader("Prerequisites")
+    st.write(lesson_plan['prerequisites'])
+    st.subheader("Milestones")
+    for milestone in lesson_plan['milestones']:
+        st.subheader(milestone['title'])
+        st.write(milestone['description'])
+        st.subheader("Objectives")
+        for objective in milestone['objectives']:
+            st.write(objective['title'])
+            st.write(objective['description'])
+    st.caption("More details can be found in: " + url)
 
 if st.button("Generate Plan"):
     if goal == "":
@@ -67,6 +111,7 @@ if st.button("Generate Plan"):
         time.sleep(4)
         st.rerun()
     else:
-        generate_goal()
-
-    
+        #get_wikihow()
+        #generate_plan()
+        print_plan()
+        st.balloons()
