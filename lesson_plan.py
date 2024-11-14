@@ -137,7 +137,7 @@ if 'clicked' not in st.session_state:
     st.session_state.clicked = False
 
 if st.session_state.clicked is False:
-    if st.button("Generate Plan"):
+    if st.button("Generate Plan", type="primary", use_container_width=True):
         if goal == "":
             st.write("What? You have no goals in life?")
             time.sleep(4)
