@@ -97,18 +97,32 @@ def print_plan():
     st.write(lesson_plan['prerequisites'])
     st.divider()
     st.markdown("## Milestones")
-    for milestone in lesson_plan['milestones']:
-        st.markdown(f"### {milestone['title']}")
-        st.write(milestone['description'])
-        st.markdown("#### Objectives")
-        #with st.expander("Objectives"):
-        for objective in milestone['objectives']:
-            #st.write(f"##### {objective['title']}")
-            #TODO: Page reloads when checkbox is clicked
-            st.checkbox(objective['title'])
-            st.write(objective['description'])
-            st.divider()
+    #for milestone in lesson_plan['milestones']:
+    #    st.markdown(f"### {milestone['title']}")
+    #    st.write(milestone['description'])
+    #    st.markdown("#### Objectives")
+    #    #with st.expander("Objectives"):
+    #    for objective in milestone['objectives']:
+    #        #st.write(f"##### {objective['title']}")
+    #        #TODO: Page reloads when checkbox is clicked
+    #        st.checkbox(objective['title'])
+    #        st.write(objective['description'])
+    #        st.divider()
         #st.divider()
+
+    for i, milestone in enumerate(lesson_plan['milestones']):
+        form_key = f"milestone_form_{i}"
+        with st.form(key=form_key):
+            st.markdown(f"### {milestone['title']}")
+            st.write(milestone['description'])
+            st.markdown("#### Objectives")
+            for objective in milestone['objectives']:
+                checkbox_val = st.checkbox(objective['title'], key=f"objective_{objective['title']}")
+                st.write(objective['description'])
+            submitted = st.form_submit_button(f"Milestone {i}", disabled=True)
+            if submitted:
+                st.write("Submitted")
+
     st.caption("More details can be found in: " + url)
 
 if st.button("Generate Plan"):
