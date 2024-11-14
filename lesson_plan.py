@@ -25,7 +25,11 @@ def get_wikihow():
         article_id = search_result[0]["article_id"]
         article_info = return_details(article_id)
         if not article_info.get("low_quality", False) and not article_info.get("is_stub", False):
-            url = article_info["url"]
+            
+            if 'url' not in st.session_state:
+                st.session_state.url = article_info["url"]
+            url = st.session_state.url
+
             article = wha.Article(url)
             break
     article_dict = {
@@ -89,7 +93,19 @@ def generate_plan():
     return json.loads(plan_response.choices[0].message.content)
 
 def print_plan():
-    lesson_plan = generate_plan()
+    #st.write("session check 1:")
+    #st.write(st.session_state)
+
+    if 'lesson_plan' not in st.session_state:
+        print("Generating plan...")
+        st.session_state['lesson_plan'] = generate_plan()
+    lesson_plan = st.session_state.lesson_plan
+
+    #st.write("session check 2:")
+    #st.write(st.session_state)
+    
+    
+    #lesson_plan = generate_plan()
 
     st.markdown(f"# {lesson_plan['hobby']}")
     st.divider()
@@ -119,19 +135,26 @@ def print_plan():
             for objective in milestone['objectives']:
                 checkbox_val = st.checkbox(objective['title'], key=f"objective_{objective['title']}")
                 st.write(objective['description'])
-            submitted = st.form_submit_button(f"Milestone {i}", disabled=True)
+            submitted = st.form_submit_button(f"Milestone {i}")#, disabled=True)
             if submitted:
                 st.write("Submitted")
+    st.caption("More details can be found in: " + st.session_state.url)
 
-    st.caption("More details can be found in: " + url)
+if 'clicked' not in st.session_state:
+    st.session_state.clicked = False
 
-if st.button("Generate Plan"):
-    if goal == "":
-        st.write("What? You have no goals in life?")
-        time.sleep(4)
-        st.rerun()
-    else:
-        #get_wikihow()
-        #generate_plan()
-        print_plan()
-        st.balloons()
+if st.session_state.clicked is False:
+    if st.button("Generate Plan"):
+        if goal == "":
+            st.write("What? You have no goals in life?")
+            time.sleep(4)
+            st.rerun()
+        else:
+            #get_wikihow()
+            #generate_plan()
+            print_plan()
+            st.balloons()
+            st.session_state.clicked = True 
+
+if st.session_state.clicked is True:
+    print_plan()
