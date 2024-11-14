@@ -64,6 +64,7 @@ def generate_plan():
             The lesson plan must be structured around milestones to help people learn new hobbies.
             Do not include any information that is not in the article.
             Do not include instructions to buy any additional materials, items, equipment or tools, even if they are mentioned in the article.
+            Do not use the words "buy", "purchase", or "invest in" in the lesson plan.
             You can make suggestions for commonly available items, but the lesson plan should not depend on them.
             Use decimal format for any non-integer quantities. 
             Only output raw JSON without any additional formatting or text.
@@ -93,52 +94,41 @@ def generate_plan():
     return json.loads(plan_response.choices[0].message.content)
 
 def print_plan():
-    #st.write("session check 1:")
-    #st.write(st.session_state)
-
     if 'lesson_plan' not in st.session_state:
-        print("Generating plan...")
         st.session_state['lesson_plan'] = generate_plan()
     lesson_plan = st.session_state.lesson_plan
 
-    #st.write("session check 2:")
-    #st.write(st.session_state)
-    
-    
-    #lesson_plan = generate_plan()
-
     st.markdown(f"# {lesson_plan['hobby']}")
+    st.caption("More details can be found in: " + st.session_state.url)
     st.divider()
     st.markdown("## Prerequisites")
     st.write(lesson_plan['prerequisites'])
     st.divider()
     st.markdown("## Milestones")
-    #for milestone in lesson_plan['milestones']:
-    #    st.markdown(f"### {milestone['title']}")
-    #    st.write(milestone['description'])
-    #    st.markdown("#### Objectives")
-    #    #with st.expander("Objectives"):
-    #    for objective in milestone['objectives']:
-    #        #st.write(f"##### {objective['title']}")
-    #        #TODO: Page reloads when checkbox is clicked
-    #        st.checkbox(objective['title'])
-    #        st.write(objective['description'])
-    #        st.divider()
-        #st.divider()
 
     for i, milestone in enumerate(lesson_plan['milestones']):
+        if f'milestone_{i}_completed' not in st.session_state:
+            st.session_state[f'milestone_{i}_completed'] = False
+
         form_key = f"milestone_form_{i}"
         with st.form(key=form_key):
             st.markdown(f"### {milestone['title']}")
             st.write(milestone['description'])
+
             st.markdown("#### Objectives")
             for objective in milestone['objectives']:
-                checkbox_val = st.checkbox(objective['title'], key=f"objective_{objective['title']}")
+                st.checkbox(objective['title'], key=f"objective_{objective['title']}")
                 st.write(objective['description'])
-            submitted = st.form_submit_button(f"Milestone {i}")#, disabled=True)
-            if submitted:
-                st.write("Submitted")
-    st.caption("More details can be found in: " + st.session_state.url)
+
+            #TODO: bugfix - Have to click the button twice to mark as completed
+            if st.session_state[f'milestone_{i}_completed'] == True:
+                completed = st.form_submit_button("Milestone Complete", type="primary", disabled=True, use_container_width=True)
+                st.subheader(f"Congratulations on completing Milestone {i+1}: {milestone['title']}!")
+            else:
+                completed = st.form_submit_button("Complete Milestone", type="primary", use_container_width=True)
+                if completed:
+                    st.session_state[f'milestone_{i}_completed'] = True
+                    
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False
@@ -150,11 +140,9 @@ if st.session_state.clicked is False:
             time.sleep(4)
             st.rerun()
         else:
-            #get_wikihow()
-            #generate_plan()
+            st.session_state.clicked = True 
             print_plan()
             st.balloons()
-            st.session_state.clicked = True 
 
 if st.session_state.clicked is True:
     print_plan()
