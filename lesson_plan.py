@@ -6,6 +6,11 @@ from whapi import search, return_details
 import wikihowunofficialapi as wha
 from openai import OpenAI
 
+st.set_page_config(
+    page_title= "How to Basic",
+    page_icon= "nerd_face"
+)
+
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) 
 
