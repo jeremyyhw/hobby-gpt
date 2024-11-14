@@ -19,7 +19,6 @@ def get_wikihow():
     global article_id
     global url
     global article
-    st.write("Searching for WikiHow article...")
     while True:
         search_result = search(goal, 1)
         article_id = search_result[0]["article_id"]
@@ -53,7 +52,6 @@ def get_wikihow():
 
 def generate_plan():
     article_json = get_wikihow()
-    st.write("Generating plan...")
     plan_response= client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -90,7 +88,7 @@ def generate_plan():
             {"role": "user", "content": article_json}
         ]
     )
-    #st.write(plan_response.choices[0].message.content)
+    st.balloons()
     return json.loads(plan_response.choices[0].message.content)
 
 def print_plan():
@@ -120,7 +118,6 @@ def print_plan():
                 st.checkbox(objective['title'], key=f"objective_{objective['title']}")
                 st.write(objective['description'])
 
-            #TODO: bugfix - Have to click the button twice to mark as completed
             if st.session_state[f'milestone_{i}_completed']:
                 completed = st.form_submit_button("Milestone Complete", type="primary", disabled=True, use_container_width=True)
                 st.subheader(f"Congratulations on completing Milestone {i+1}: {milestone['title']}!")
@@ -128,6 +125,7 @@ def print_plan():
                 completed = st.form_submit_button("Complete Milestone", type="primary", use_container_width=True)
                 if completed:
                     st.session_state[f'milestone_{i}_completed'] = True
+                    st.rerun()
                     
 
 if 'clicked' not in st.session_state:
@@ -140,8 +138,15 @@ if st.session_state.clicked is False:
             time.sleep(4)
             st.rerun()
         else:
-            st.session_state.clicked = True 
-            st.balloons()
+            st.session_state.clicked = True
+            st.write("Searching for WikiHow article...") 
+            time.sleep(3)
+            st.write("Generating plan...")
+            st.rerun()
 
 if st.session_state.clicked is True:
     print_plan()
+    if st.button("Generate Another Plan"):
+        st.session_state.clicked = False
+        st.session_state.clear()
+        st.rerun()
