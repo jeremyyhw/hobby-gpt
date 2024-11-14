@@ -116,7 +116,7 @@ def print_plan():
             st.session_state[f'milestone_{i}_completed'] = False
 
         form_key = f"milestone_form_{i}"
-        with st.form(key=form_key):
+        with st.form(form_key):
             st.markdown(f"### {milestone['title']}")
             st.write(milestone['description'])
 
@@ -126,7 +126,7 @@ def print_plan():
                 st.write(objective['description'])
 
             #TODO: bugfix - Have to click the button twice to mark as completed
-            if st.session_state[f'milestone_{i}_completed'] == True:
+            if st.session_state[f'milestone_{i}_completed']:
                 completed = st.form_submit_button("Milestone Complete", type="primary", disabled=True, use_container_width=True)
                 st.subheader(f"Congratulations on completing Milestone {i+1}: {milestone['title']}!")
             else:
@@ -146,7 +146,6 @@ if st.session_state.clicked is False:
             st.rerun()
         else:
             st.session_state.clicked = True 
-            print_plan()
             st.balloons()
 
 if st.session_state.clicked is True:
