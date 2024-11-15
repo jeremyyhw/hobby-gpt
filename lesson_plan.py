@@ -34,7 +34,8 @@ def get_wikihow():
             if not article_info.get("low_quality", False) and not article_info.get("is_stub", False):
                 
                 if 'url' not in st.session_state:
-                    st.session_state.url = article_info["url"]
+                    st.session_state.url = "https://www.wikihow.com/Play-the-Piano"
+                    #st.session_state.url = article_info["url"]
                 url = st.session_state.url
 
                 article = wha.Article(url)
