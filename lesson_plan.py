@@ -14,6 +14,8 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.title("Plan your lesson 101")
 
+global goal
+
 goal = st.text_input("Type your goal that you want to achieve")
 
 url = ""
@@ -86,12 +88,68 @@ def generate_plan():
                     ]
                     },
                 ]
-                }
+            }
             """},
             {"role": "user", "content": article_json}
         ]
     )
     return json.loads(plan_response.choices[0].message.content)
+
+def modify_milestone(milestone1, feedback, milestone2):
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages = [
+            {"role":"system", "content":f"""
+            You are a multi-talented subject expert and mentor who is passionate about teaching people new skills.
+            You are given the following milestones for a goal-based lesson plan. Milestone 1: {milestone1} Milestone 2: {milestone2}
+            The user has already completed Milestone 1 and has provided feedback for it. You need to modify Milestone 2 based on this feedback.
+            Do not include instructions to buy any additional materials, items, equipment or tools, even if they are mentioned in the article.
+            Do not include instructions to purchase any services or pay for any subscriptions.
+            Do not include instructions to invest money in any way. Do not use the words "buy", "purchase", or "invest in".
+            You can make suggestions to use commonly available items, but the lesson plan should not depend on them.
+            Use decimal format for any non-integer quantities. 
+            Only output raw JSON without any additional formatting or text."""
+            + """
+            The JSON output should follow the format below:
+            {
+                "title": "",
+                "description": "",
+                "objectives": [
+                    {
+                    "title": "",
+                    "description": "",
+                    },
+                ]
+            }
+            """},
+            {"role":"user", "content":feedback}
+        ],
+    )
+    return json.loads(response.choices[0].message.content)
+
+def display_milestone(milestone_json, index):
+    milestone = json.loads(milestone_json)
+    form_key = f"milestone_form_{index}"
+    
+    with st.form(form_key):
+        st.markdown(f"### {index + 1} - {milestone['title']}")
+        st.write(milestone['description'])
+        
+        st.markdown("#### Objectives")
+        for objective in milestone['objectives']:
+            st.checkbox(objective['title'], key=f"objective_{objective['title']}")
+            st.write(objective['description'])
+
+        feedback = st.text_area("You can provide feedback for this milestone. Please leave it blank if you have no feedback.", key=f"feedback_{index}")
+        
+        if st.session_state[f'milestone_{index}_completed']:
+            st.form_submit_button("Milestone Complete", type="primary", disabled=True, use_container_width=True)
+        else:
+            if st.form_submit_button("Complete Milestone", type="primary", use_container_width=True):
+                if feedback is not "":
+                    st.session_state[f'milestone_{index}_feedback'] = feedback
+                st.session_state[f'milestone_{index}_completed'] = True
+                st.rerun()
 
 def print_plan():
     if 'lesson_plan' not in st.session_state:
@@ -127,28 +185,27 @@ def print_plan():
         should_show = i == 0 or st.session_state[f'milestone_{i-1}_completed']
         
         if should_show:
-            form_key = f"milestone_form_{i}"
-            with st.form(form_key):
-                st.markdown(f"### {i+1} - {milestone['title']}")
-                st.write(milestone['description'])
-                
-                st.markdown("#### Objectives")
-                for objective in milestone['objectives']:
-                    st.checkbox(objective['title'], key=f"objective_{objective['title']}")
-                    st.markdown(f"- {objective['description']}")
-                
-                if st.session_state[f'milestone_{i}_completed']:
-                    if st.form_submit_button("Reset Progress", type="secondary", use_container_width=True):
-                        st.session_state[f'milestone_{i}_completed'] = False
-                        st.rerun()
-                    st.success(f"✨ Completed Milestone {i+1} - {milestone['title']}!")
-                else:
-                    if st.form_submit_button("Complete Milestone", type="primary", use_container_width=True):
-                        st.session_state[f'milestone_{i}_completed'] = True
-                        st.rerun()
+            # Modify milestone based on feedback from previous milestone
+            if i > 0 and st.session_state[f'feedback_{i-1}']:
+                with st.spinner(f"Modifying Milestone {i + 1} based on your feedback..."):
+                    prev_milestone = json.dumps(lesson_plan['milestones'][i-1])
+                    curr_milestone = json.dumps(milestone)
+                    feedback = st.session_state[f'feedback_{i-1}']
+                    milestone = modify_milestone(prev_milestone, curr_milestone, feedback)
+
+            display_milestone(json.dumps(milestone), i)
+
+            if st.session_state[f'milestone_{i}_completed']:
+                st.success(f"✨ Completed Milestone {i + 1} - {milestone['title']}!")
+                if st.button(label="Reset Progress", key=f"milestone_{i}_reset", use_container_width=True):
+                    st.session_state[f'milestone_{i}_completed'] = False
+                    if f'milestone_{i+1}_completed' in st.session_state and st.session_state[f'milestone_{i+1}_completed']:
+                        st.session_state[f'milestone_{i+1}_completed'] = False
+                    st.rerun()
         else:
             st.info(f"🔒 Complete previous milestone to unlock: {milestone['title']}")
-
+    st.divider()
+    st.warning('WARNING: You cannot undo the actions below, so be 100 percent sure!', icon="⚠️")
     if st.button("Reset All Progress", use_container_width=True):
         for i in range(len(lesson_plan['milestones'])):
             st.session_state[f'milestone_{i}_completed'] = False
