@@ -6,15 +6,15 @@ import wikihowunofficialapi as wha
 from openai import OpenAI
 
 st.set_page_config(
-    page_title= "How to Basic",
+    page_title= "HowTo.Basic",
     page_icon= "nerd_face"
 )
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) 
 
-st.title("Plan your lesson 101")
+st.markdown("""<h1 style='text-align: center; color: white;'>Plan your lesson with AI</h1>""", unsafe_allow_html=True)
 
-goal = st.text_input("Type your goal that you want to achieve")
+goal = st.text_input("What do you want to learn today?")
 
 url = ""
 
