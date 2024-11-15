@@ -14,8 +14,6 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.title("Plan your lesson 101")
 
-global goal
-
 goal = st.text_input("Type your goal that you want to achieve")
 
 url = ""
@@ -24,18 +22,27 @@ def get_wikihow():
     global article_id
     global url
     global article
-    while True:
-        search_result = search(goal, 1)
-        article_id = search_result[0]["article_id"]
-        article_info = return_details(article_id)
-        if not article_info.get("low_quality", False) and not article_info.get("is_stub", False):
-            
-            if 'url' not in st.session_state:
-                st.session_state.url = article_info["url"]
-            url = st.session_state.url
 
-            article = wha.Article(url)
-            break
+    try:
+        while True:
+            # use whapi to search wikihow with the goal input as search term and get first result
+            search_result = search(goal, max_results=1)
+            # get the article id of the first result
+            article_id = search_result[0]["article_id"]
+            # get the details of the article as a python dict
+            article_info = return_details(article_id)
+            if not article_info.get("low_quality", False) and not article_info.get("is_stub", False):
+                
+                if 'url' not in st.session_state:
+                    st.session_state.url = article_info["url"]
+                url = st.session_state.url
+
+                article = wha.Article(url)
+                break
+    except Exception as e:
+        st.write("An API error occurred while searching for the WikiHow article. Please try again later.")
+        st.write(e)
+
     article_dict = {
         "title": article.title,
         "intro": article.intro,
